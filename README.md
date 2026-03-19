@@ -105,3 +105,7 @@ Generates `marketplace.json` and optionally a README from the synced plugins on 
 * Only plugins with relative-path sources (e.g. `"source": "./plugins/foo"`) are supported. Remote plugin sources like `github`, `url`, and `npm` are not yet supported.
 
 * Renaming plugins is not supported. If you sync multiple upstream marketplaces with the same plugin name into the same `plugins-dir`, they will conflict.
+
+# Credit
+
+This idea was inspired by [andrew-d](https://github.com/andrew-d)'s setup, though our implementations differ.
