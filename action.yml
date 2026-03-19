@@ -1,0 +1,41 @@
+name: Sync plugins from a Claude Code marketplace
+description: Sync plugins from an upstream marketplace repo into your local plugins directory. Run once per upstream marketplace, then use argemma-oss/marketplace-sync/generate to produce your marketplace.json.
+
+branding:
+  icon: refresh-cw
+  color: purple
+
+inputs:
+  repo:
+    description: GitHub repo URL of an upstream marketplace (must have .claude-plugin/marketplace.json)
+    required: true
+  branch:
+    description: Branch to follow
+    required: false
+    default: main
+  plugins:
+    description: Comma-separated list of plugin names to sync (must match names in upstream marketplace.json)
+    required: true
+  plugins-dir:
+    description: Directory where synced plugin directories are written
+    required: false
+    default: plugins
+
+runs:
+  using: composite
+  steps:
+    - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+
+    - name: Sync plugins from upstream
+      shell: bash
+      env:
+        INPUT_REPO: ${{ inputs.repo }}
+        INPUT_BRANCH: ${{ inputs.branch }}
+        INPUT_PLUGINS: ${{ inputs.plugins }}
+        INPUT_PLUGINS_DIR: ${{ inputs.plugins-dir }}
+      run: |
+        uv run --project "${{ github.action_path }}" sync \
+          --repo "$INPUT_REPO" \
+          --branch "$INPUT_BRANCH" \
+          --plugins "$INPUT_PLUGINS" \
+          --plugins-dir "$INPUT_PLUGINS_DIR"

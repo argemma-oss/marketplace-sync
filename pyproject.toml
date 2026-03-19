@@ -1,0 +1,19 @@
+[project]
+name = "marketplace-sync"
+version = "0.0.1"
+requires-python = ">=3.12"
+dependencies = []
+
+[project.scripts]
+sync = "marketplace_sync:sync_cli"
+generate = "marketplace_sync:generate_cli"
+
+[build-system]
+requires = ["uv_build>=0.10.9,<0.11.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = ["pytest", "ruff"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]

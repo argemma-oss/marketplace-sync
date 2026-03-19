@@ -1,0 +1,11 @@
+{
+  "name": "root-source-marketplace",
+  "owner": {"name": "Test"},
+  "plugins": [
+    {
+      "name": "my-plugin",
+      "source": "./",
+      "description": "A plugin using root source"
+    }
+  ]
+}

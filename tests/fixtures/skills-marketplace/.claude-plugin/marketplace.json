@@ -1,0 +1,15 @@
+{
+  "name": "test-skills-marketplace",
+  "owner": {"name": "Test"},
+  "plugins": [
+    {
+      "name": "all-skills",
+      "source": "./",
+      "description": "A bundle of skills",
+      "skills": [
+        "./skills/alpha",
+        "./skills/beta"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+name: Generate marketplace.json and README
+description: Generate marketplace.json and optionally a README from previously synced plugins. Run once after all argemma-oss/marketplace-sync steps.
+
+branding:
+  icon: refresh-cw
+  color: purple
+
+inputs:
+  plugins-dir:
+    description: Directory where synced plugin directories live
+    required: false
+    default: plugins
+  readme-path:
+    description: Output path for the generated README. If not set, no README is generated.
+    required: false
+    default: ""
+  readme-table-prefix:
+    description: Markdown text to place before the plugin table in the README
+    required: false
+    default: ""
+  marketplace-name:
+    description: Name for the generated marketplace (used in plugin install commands)
+    required: false
+    default: marketplace-sync
+  marketplace-description:
+    description: Description for the generated marketplace metadata
+    required: false
+    default: "Curated Claude Code plugins, automatically synced from upstream sources."
+  owner-name:
+    description: Owner name for the generated marketplace
+    required: false
+    default: marketplace-sync
+
+outputs:
+  changed:
+    description: Whether any files changed ('true' or 'false')
+    value: ${{ steps.generate.outputs.changed }}
+
+runs:
+  using: composite
+  steps:
+    - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+
+    - name: Generate marketplace and README
+      id: generate
+      shell: bash
+      env:
+        INPUT_PLUGINS_DIR: ${{ inputs.plugins-dir }}
+        INPUT_README_PATH: ${{ inputs.readme-path }}
+        INPUT_README_TABLE_PREFIX: ${{ inputs.readme-table-prefix }}
+        INPUT_MARKETPLACE_NAME: ${{ inputs.marketplace-name }}
+        INPUT_MARKETPLACE_DESCRIPTION: ${{ inputs.marketplace-description }}
+        INPUT_OWNER_NAME: ${{ inputs.owner-name }}
+      run: |
+        uv run --project "${{ github.action_path }}/.." generate \
+          --plugins-dir "$INPUT_PLUGINS_DIR" \
+          --readme-path "$INPUT_README_PATH" \
+          --readme-table-prefix "$INPUT_README_TABLE_PREFIX" \
+          --marketplace-name "$INPUT_MARKETPLACE_NAME" \
+          --marketplace-description "$INPUT_MARKETPLACE_DESCRIPTION" \
+          --owner-name "$INPUT_OWNER_NAME"
