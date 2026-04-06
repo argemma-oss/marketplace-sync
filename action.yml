@@ -1,5 +1,5 @@
 name: Sync plugins from a Claude Code marketplace
-description: Sync plugins from an upstream marketplace repo into your local plugins directory. Run once per upstream marketplace, then use argemma-oss/marketplace-sync/generate to produce your marketplace.json.
+description: Sync plugins from an upstream marketplace repo into your local plugins directory.
 
 branding:
   icon: refresh-cw
