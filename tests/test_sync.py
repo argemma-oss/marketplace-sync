@@ -198,6 +198,76 @@ class TestSyncPlugins:
         with pytest.raises(SystemExit):
             sync_plugins(str(upstream_repo), "main", ["nonexistent"], "plugins")
 
+    def test_preserves_commit_when_no_content_changes(
+        self, upstream_repo, work_dir, monkeypatch
+    ):
+        """Re-syncing with no upstream content changes must not bump the commit SHA."""
+        monkeypatch.chdir(work_dir)
+        _git_run(work_dir, "init", "--initial-branch=main")
+        _git_run(work_dir, "config", "user.email", "test@test.com")
+        _git_run(work_dir, "config", "user.name", "Test")
+
+        sync_plugins(str(upstream_repo), "main", ["foo"], "plugins")
+        _git_run(work_dir, "add", ".")
+        _git_run(work_dir, "commit", "-m", "initial sync")
+
+        first_commit = json.loads(
+            (
+                work_dir / "plugins" / "foo" / ".claude-plugin" / "plugin.json"
+            ).read_text()
+        )["sync-metadata"]["commit"]
+
+        # Make a no-op upstream commit (only touches an unrelated file)
+        (upstream_repo / "unrelated.txt").write_text("noise")
+        _git_run(upstream_repo, "add", ".")
+        _git_run(upstream_repo, "commit", "-m", "unrelated change")
+
+        sync_plugins(str(upstream_repo), "main", ["foo"], "plugins")
+
+        second_commit = json.loads(
+            (
+                work_dir / "plugins" / "foo" / ".claude-plugin" / "plugin.json"
+            ).read_text()
+        )["sync-metadata"]["commit"]
+
+        assert first_commit == second_commit
+
+    def test_updates_commit_when_content_changes(
+        self, upstream_repo, work_dir, monkeypatch
+    ):
+        """Re-syncing after a real content change must bump the commit SHA."""
+        monkeypatch.chdir(work_dir)
+        _git_run(work_dir, "init", "--initial-branch=main")
+        _git_run(work_dir, "config", "user.email", "test@test.com")
+        _git_run(work_dir, "config", "user.name", "Test")
+
+        sync_plugins(str(upstream_repo), "main", ["foo"], "plugins")
+        _git_run(work_dir, "add", ".")
+        _git_run(work_dir, "commit", "-m", "initial sync")
+
+        first_commit = json.loads(
+            (
+                work_dir / "plugins" / "foo" / ".claude-plugin" / "plugin.json"
+            ).read_text()
+        )["sync-metadata"]["commit"]
+
+        skill_file = (
+            upstream_repo / "plugins" / "foo" / "skills" / "foo-skill" / "SKILL.md"
+        )
+        skill_file.write_text("---\ndescription: Updated\n---\n# Foo\n\nUpdated.\n")
+        _git_run(upstream_repo, "add", ".")
+        _git_run(upstream_repo, "commit", "-m", "update skill content")
+
+        sync_plugins(str(upstream_repo), "main", ["foo"], "plugins")
+
+        second_commit = json.loads(
+            (
+                work_dir / "plugins" / "foo" / ".claude-plugin" / "plugin.json"
+            ).read_text()
+        )["sync-metadata"]["commit"]
+
+        assert first_commit != second_commit
+
 
 def test_generate_table(upstream_repo, work_dir, monkeypatch):
     monkeypatch.chdir(work_dir)
