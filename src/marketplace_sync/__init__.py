@@ -144,6 +144,30 @@ def stamp_plugin(plugin_dir: Path, repo: str, commit: str):
     path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n")
 
 
+def _plugin_content_changed(plugin_dir: Path, old_plugin_json: dict) -> bool:
+    """Return True if plugin content changed vs HEAD, ignoring sync-metadata commit bumps."""
+    pj_path = str(plugin_dir / ".claude-plugin" / "plugin.json")
+
+    # Check if any non-plugin.json files changed or are newly untracked
+    try:
+        diff_out = git("diff", "--name-only", "--", str(plugin_dir))
+        if any(f != pj_path for f in diff_out.splitlines() if f):
+            return True
+        untracked = git(
+            "ls-files", "--others", "--exclude-standard", "--", str(plugin_dir)
+        )
+        if any(f != pj_path for f in untracked.splitlines() if f):
+            return True
+    except RuntimeError:
+        return True
+
+    # Check if plugin.json metadata changed (ignoring sync-metadata)
+    new_data = read_plugin_json(plugin_dir)
+    old_meta = {k: v for k, v in old_plugin_json.items() if k != "sync-metadata"}
+    new_meta = {k: v for k, v in new_data.items() if k != "sync-metadata"}
+    return old_meta != new_meta
+
+
 def _write_plugin_json(plugin_dir: Path, data: dict):
     cp_dir = plugin_dir / ".claude-plugin"
     cp_dir.mkdir(parents=True, exist_ok=True)
@@ -178,6 +202,8 @@ def sync_plugins(
                     "but not found on disk."
                 )
 
+            old_plugin_json = read_plugin_json(dest) if dest.exists() else None
+
             if dest.exists():
                 shutil.rmtree(dest)
             shutil.copytree(src, dest, ignore=shutil.ignore_patterns(".git"))
@@ -186,8 +212,17 @@ def sync_plugins(
             if not (dest / ".claude-plugin" / "plugin.json").is_file():
                 _write_plugin_json(dest, synthesize_plugin_json(plugin_entry))
 
-            stamp_plugin(dest, repo, commit)
-            print(f"  {name}: synced")
+            # Only update sync-metadata if plugin content actually changed.
+            # If the upstream commit moved but files are identical, restore the
+            # old plugin.json to avoid spurious diffs that produce empty PRs.
+            if old_plugin_json is None or _plugin_content_changed(
+                dest, old_plugin_json
+            ):
+                stamp_plugin(dest, repo, commit)
+                print(f"  {name}: synced")
+            else:
+                _write_plugin_json(dest, old_plugin_json)
+                print(f"  {name}: up to date")
 
 
 def generate_marketplace(
