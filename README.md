@@ -25,18 +25,18 @@ jobs:
       - uses: actions/checkout@v4
 
       # Sync plugins from upstream marketplaces
-      - uses: argemma-oss/marketplace-sync@main # You likely want to pin to a commit or release here!
+      - uses: argemma-oss/marketplace-sync@v1.0.0
         with:
           repo: https://github.com/anthropics/claude-plugins-official
           plugins: skill-creator
 
-      - uses: argemma-oss/marketplace-sync@main
+      - uses: argemma-oss/marketplace-sync@v1.0.0
         with:
           repo: https://github.com/coreyhaines31/marketingskills
           plugins: marketing-skills
 
       # Generate marketplace.json and README after all syncs
-      - uses: argemma-oss/marketplace-sync/generate@main
+      - uses: argemma-oss/marketplace-sync/generate@v1.0.0
         id: generate
         with:
           marketplace-name: my-curated-marketplace
