@@ -192,6 +192,28 @@ class TestSyncPlugins:
         assert ref.is_file()
         assert "Extra info." in ref.read_text()
 
+    def test_decompresses_skill_files(self, upstream_repo, work_dir, monkeypatch):
+        """Gzip-compressed .skill files are decompressed to .md and the originals removed."""
+        import gzip
+
+        monkeypatch.chdir(work_dir)
+
+        skill_content = "---\ndescription: My skill\n---\n# My Skill\n\nDoes things.\n"
+        skill_path = (
+            upstream_repo / "plugins" / "foo" / "skills" / "foo-skill" / "foo.skill"
+        )
+        skill_path.write_bytes(gzip.compress(skill_content.encode()))
+        _git_run(upstream_repo, "add", ".")
+        _git_run(upstream_repo, "commit", "-m", "add .skill file")
+
+        sync_plugins(str(upstream_repo), "main", ["foo"], "plugins")
+
+        dest = work_dir / "plugins" / "foo" / "skills" / "foo-skill"
+        assert not (dest / "foo.skill").exists()
+        md = dest / "foo.md"
+        assert md.is_file()
+        assert md.read_text() == skill_content
+
     def test_missing_plugin_errors(self, upstream_repo, work_dir, monkeypatch):
         monkeypatch.chdir(work_dir)
 

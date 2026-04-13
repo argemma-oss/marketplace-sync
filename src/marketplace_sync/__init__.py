@@ -1,6 +1,7 @@
 """Sync Claude Code plugins from upstream marketplace repos."""
 
 import argparse
+import gzip
 import json
 import os
 import re
@@ -207,6 +208,12 @@ def sync_plugins(
             if dest.exists():
                 shutil.rmtree(dest)
             shutil.copytree(src, dest, ignore=shutil.ignore_patterns(".git"))
+
+            for skill_file in dest.rglob("*.skill"):
+                skill_file.with_suffix(".md").write_text(
+                    gzip.decompress(skill_file.read_bytes()).decode()
+                )
+                skill_file.unlink()
 
             # Synthesize plugin.json if the plugin doesn't have one
             if not (dest / ".claude-plugin" / "plugin.json").is_file():
