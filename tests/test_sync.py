@@ -214,6 +214,29 @@ class TestSyncPlugins:
         assert md.is_file()
         assert md.read_text() == skill_content
 
+    def test_extracts_zip_skill_files(self, upstream_repo, work_dir, monkeypatch):
+        """ZIP-compressed .skill files are extracted in place and the archive removed."""
+        import io
+        import zipfile
+
+        monkeypatch.chdir(work_dir)
+
+        skill_dir = upstream_repo / "plugins" / "foo" / "skills" / "foo-skill"
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w") as zf:
+            zf.writestr("SKILL.md", "---\ndescription: Zipped skill\n---\n# Foo\n")
+            zf.writestr("references/ref.md", "# Reference\n")
+        (skill_dir / "foo.skill").write_bytes(buf.getvalue())
+        _git_run(upstream_repo, "add", ".")
+        _git_run(upstream_repo, "commit", "-m", "add zip skill file")
+
+        sync_plugins(str(upstream_repo), "main", ["foo"], "plugins")
+
+        dest = work_dir / "plugins" / "foo" / "skills" / "foo-skill"
+        assert not (dest / "foo.skill").exists()
+        assert (dest / "SKILL.md").is_file()
+        assert (dest / "references" / "ref.md").is_file()
+
     def test_missing_plugin_errors(self, upstream_repo, work_dir, monkeypatch):
         monkeypatch.chdir(work_dir)
 

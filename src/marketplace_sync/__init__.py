@@ -2,6 +2,7 @@
 
 import argparse
 import gzip
+import io
 import json
 import os
 import re
@@ -9,6 +10,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import zipfile
 from contextlib import contextmanager
 from pathlib import Path
 from typing import NoReturn
@@ -210,10 +212,16 @@ def sync_plugins(
             shutil.copytree(src, dest, ignore=shutil.ignore_patterns(".git"))
 
             for skill_file in dest.rglob("*.skill"):
-                skill_file.with_suffix(".md").write_text(
-                    gzip.decompress(skill_file.read_bytes()).decode()
-                )
-                skill_file.unlink()
+                data = skill_file.read_bytes()
+                if data[:2] == b"\x1f\x8b":
+                    skill_file.with_suffix(".md").write_text(
+                        gzip.decompress(data).decode()
+                    )
+                    skill_file.unlink()
+                elif data[:2] == b"PK":
+                    with zipfile.ZipFile(io.BytesIO(data)) as zf:
+                        zf.extractall(skill_file.parent)
+                    skill_file.unlink()
 
             # Synthesize plugin.json if the plugin doesn't have one
             if not (dest / ".claude-plugin" / "plugin.json").is_file():
